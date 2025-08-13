@@ -170,3 +170,19 @@
 
         解决方案：
             在页面加载生命周期或初始化逻辑中绑定事件监听。
+
+## wallet_revokePermissions （断开连接）
+
+    在 ethers.js 和 web3.js 中没有官方的 disconnect() 方法，因为 它们只是一个区块链交互库，本身不维护“连接状态”。
+
+    钱包连接和断开是由钱包提供商（MetaMask、WalletConnect 等）管理的，不是由 这些库控制的。
+
+    MetaMask
+        没有官方 API 直接让 dApp 主动断开连接，因为连接状态是由用户钱包决定的。不过我们让用户移除站点授权，这会让 MetaMask 撤销你的站点访问权限，下次访问需要重新授权。
+            await window.ethereum.request({
+                method: "wallet_revokePermissions",
+                params: [{ eth_accounts: {} }]
+            });
+
+    WalletConnect
+        是支持主动断开的：await provider.disconnect();
