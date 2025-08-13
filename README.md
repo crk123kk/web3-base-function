@@ -4,7 +4,81 @@
 
     包含：连接 metaMask 用户、获取用户信息、获取用户余额等功能
 
-## 项目详情
+## 项目目标
+
+    实现一个基于 Web3.js 的去中心化钱包应用，支持用户连接钱包、查看账户信息、管理资产、发起交易、与智能合约交互，并具备多网络支持。
+
+## 项目详情（基本功能）
+
+### 1 钱包连接
+
+    支持 MetaMask、Brave Wallet、Coinbase Wallet 等常见钱包。
+
+    支持检测钱包是否安装 (typeof window.ethereum !== "undefined" 或 Web3.givenProvider)。
+
+    一键连接钱包（eth_requestAccounts）。
+
+    自动监听账号和网络切换事件（accountsChanged、chainChanged）。
+
+### 2 账户管理获取当前已连接的钱包地址。
+
+    显示地址的简短版本（0xabc...def）。
+
+    获取账户余额（web3.eth.getBalance 并格式化为 ETH）。
+
+    显示多币种余额（通过调用 Token 合约 balanceOf）。
+
+### 3 网络管理检测当前网络 ID 和网络名称。
+
+    支持一键切换网络（wallet_switchEthereumChain）。
+
+    支持添加自定义网络（wallet_addEthereumChain）。
+
+### 4 交易功能发起 ETH 转账（web3.eth.sendTransaction）。
+
+    发起 Token 转账（调用 ERC20 合约 transfer）。
+
+    显示交易哈希、交易状态（确认数、成功/失败）。
+
+    处理用户拒绝交易的错误。
+
+### 5 智能合约交互加载合约 ABI。
+
+    调用合约的读方法（contract.methods.methodName().call()）。
+
+    调用合约的写方法（contract.methods.methodName().send()）。
+
+    监听合约事件（contract.events.EventName）。
+
+### 6 安全与 UX 防止重放攻击（绑定网络 ID 校验）。
+
+    防止用户误操作大额转账（设置 gas 预估、余额检测）。
+
+    提示未连接钱包、网络错误等状态。
+
+## 4. 附加功能（进阶）
+
+    离线签名交易（web3.eth.accounts.signTransaction）。
+
+    NFT 展示（ERC721 / ERC1155）。
+
+    Token 列表管理（读取 CoinGecko 或链上 Token Registry）。
+
+    历史交易记录查询（Etherscan API）。
+
+## 技术要求
+
+    前端框架：Vue.js / React.js
+
+    Web3 库：web3.js v1.8.1
+
+    钱包支持：MetaMask（可扩展至 WalletConnect）
+
+    网络支持：Ethereum 主网 + 测试网（Sepolia、Goerli）
+
+    部署：vercel
+
+## 项目规划（待定）
 
     这是 v1 版本，用到的是从视频上学的，并且用到的 web.js的技术是比较老旧的 （1.8.1）主要是对 web.js 的基础功能进行整理
 
@@ -21,15 +95,3 @@
     v7 版本：实现拍卖行的功能
 
     v8 版本：实现交易所功能
-
-## 主要技术栈
-
-    vue/react：前端框架
-
-    web.js / ethers.js ：web3 框架
-
-    solidity：智能合约语言
-
-    metamask：浏览器插件
-
-    vercel：智能合约部署
