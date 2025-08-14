@@ -8,6 +8,7 @@
 
             metaMask coinbase wallet、trust wallet
 
+    显示多币种余额（通过调用 Token 合约 balanceOf）。只能通过对应合约来获取余额
 
 # 2025.08.14
 
@@ -26,5 +27,3 @@
         2.1、显示地址的简短版本（0xabc...def）。
 
         2.2、获取账户余额（web3.eth.getBalance 并格式化为 ETH）。
-
-        2.3、显示多币种余额（通过调用 Token 合约 balanceOf）。

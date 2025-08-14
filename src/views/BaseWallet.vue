@@ -8,10 +8,12 @@
     ></t-select>
     <div>web3.js基础功能</div>
     <LinkAccount></LinkAccount>
+    <AccountInfo></AccountInfo>
   </t-space>
 </template>
 
 <script setup>
+import AccountInfo from "@/components/AccountInfo.vue";
 import LinkAccount from "@/components/LinkAccount.vue";
 import { detectWallets } from "@/utils";
 import { onBeforeMount, ref } from "vue";

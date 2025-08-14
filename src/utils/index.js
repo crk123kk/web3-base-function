@@ -5,7 +5,6 @@ import { MessagePlugin } from "tdesign-vue-next";
  */
 export const setupEthereumListeners = () => {
   if (!window.ethereum) return;
-  console.log("1111");
 
   // 监听钱包连接（MetaMask 会在 eth_requestAccounts 时触发）
   // 这里要理解一点的是：这个connect是连接钱包，而不是所谓的账户切换！！！这个很重要
@@ -32,6 +31,7 @@ export const setupEthereumListeners = () => {
         console.log("账户切换，当前账户:", accounts);
         MessagePlugin.info("账户切换，当前账户");
       }
+      window.location.reload();
     } catch (e) {
       console.error("accountsChanged 处理异常", e);
     }
@@ -79,4 +79,65 @@ export const detectWallets = () => {
   if (window.ethereum && window.ethereum.isTally) wallets.push("Tally");
 
   return wallets;
+};
+
+/**
+ * 用于加密字符串显示
+ * @param {*} address
+ * @param {*} startLength
+ * @param {*} endLength
+ * @returns
+ */
+export const formatAddress = (address, startLength = 5, endLength = 3) => {
+  if (!address) return "";
+
+  if (!address.startsWith("0x") || address.length !== 42) {
+    return address;
+  }
+
+  const start = address.substring(0, startLength);
+  const end = address.substring(address.length - endLength);
+
+  return `${start}...${end}`;
+};
+
+/**
+ * 将文本复制到剪贴板
+ * @param {string} text - 需要复制的文本
+ * @returns {Promise<boolean>} 复制成功返回 true，失败返回 false
+ */
+export const copyToClipboard = async (text) => {
+  if (!text) {
+    return false;
+  }
+
+  try {
+    // 使用现代 Clipboard API（如果支持）
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } else {
+      // 降级方案：使用 document.execCommand
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-999999px";
+      textArea.style.top = "-999999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      try {
+        const successful = document.execCommand("copy");
+        document.body.removeChild(textArea);
+        return successful;
+      } catch (err) {
+        document.body.removeChild(textArea);
+        throw err;
+      }
+    }
+  } catch (err) {
+    console.error("复制失败:", err);
+    return false;
+  }
 };
