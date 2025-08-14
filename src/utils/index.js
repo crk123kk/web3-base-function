@@ -21,6 +21,7 @@ export const setupEthereumListeners = () => {
   });
 
   // 监听账户变动（包括首次连接）
+  // MetaMask 的限制导致“切到未连接账号”不会被推送事件。要解决，就得额外加轮询检测来补这个缺口。
   window.ethereum.on("accountsChanged", (accounts) => {
     // accountsChanged 事件可能会返回空数组，表示用户断开了所有账户授权，需要处理这种情况
     try {

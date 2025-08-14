@@ -186,3 +186,7 @@
 
     WalletConnect
         是支持主动断开的：await provider.disconnect();
+
+### webJs 能否只断开当前账号的连接授权
+
+    web3.js 和当前大多数 EVM 钱包（MetaMask、Coinbase Wallet 等）本身并没有提供“只断开某一个账号授权”的方法，这是因为浏览器钱包的权限是基于站点级别授权的，而不是针对单个账号的独立授权。

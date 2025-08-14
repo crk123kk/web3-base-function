@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <!-- <div>
     <p>
       <span>本地是否安装钱包：</span>
       <span>{{ isInstalled ? "是" : "否" }}</span>
@@ -10,7 +10,32 @@
     </p>
     <button v-if="!isLinked" @click="linkAccount">连接钱包</button>
     <button v-if="isLinked" @click="revoke">断开连接</button>
-  </div>
+  </div> -->
+
+  <t-space direction="vertical">
+    <t-list>
+      <t-list-item>
+        本地是否安装钱包：
+        <template #action>
+          <t-switch v-model="isInstalled" size="large" disabled>
+            <template #label="slotProps">{{
+              slotProps.value ? "是" : "否"
+            }}</template>
+          </t-switch>
+        </template>
+      </t-list-item>
+      <t-list-item>
+        是否连接了钱包：
+        <template #action>
+          <t-switch v-model="isLinked" size="large" @change="onChange">
+            <template #label="slotProps">{{
+              slotProps.value ? "连接" : "断开"
+            }}</template>
+          </t-switch>
+        </template>
+      </t-list-item>
+    </t-list>
+  </t-space>
 </template>
 
 <script setup>
@@ -64,6 +89,17 @@ const getIsLinked = async () => {
   // QA： web3.eth.getAccounts()
   const accounts = await web3.eth.getAccounts();
   isLinked.value = accounts && accounts.length > 0;
+};
+
+/**
+ * 连接和断开钱包
+ */
+const onChange = (val) => {
+  if (val) {
+    linkAccount();
+  } else {
+    revoke();
+  }
 };
 /**
  * 连接钱包

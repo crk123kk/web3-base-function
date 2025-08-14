@@ -10,7 +10,7 @@
 
 ## 项目详情（基本功能）
 
-### 1 钱包连接
+### 1、钱包连接
 
     支持 MetaMask、Brave Wallet、Coinbase Wallet 等常见钱包。
 
@@ -20,7 +20,7 @@
 
     自动监听账号和网络切换事件（accountsChanged、chainChanged）。
 
-### 2 账户管理获取当前已连接的钱包地址。
+### 2、账户管理获取当前已连接的钱包地址
 
     显示地址的简短版本（0xabc...def）。
 
@@ -28,13 +28,13 @@
 
     显示多币种余额（通过调用 Token 合约 balanceOf）。
 
-### 3 网络管理检测当前网络 ID 和网络名称。
+### 3、网络管理检测当前网络 ID 和网络名称
 
     支持一键切换网络（wallet_switchEthereumChain）。
 
     支持添加自定义网络（wallet_addEthereumChain）。
 
-### 4 交易功能发起 ETH 转账（web3.eth.sendTransaction）。
+### 4、交易功能发起 ETH 转账（web3.eth.sendTransaction）
 
     发起 Token 转账（调用 ERC20 合约 transfer）。
 
@@ -42,7 +42,7 @@
 
     处理用户拒绝交易的错误。
 
-### 5 智能合约交互加载合约 ABI。
+### 5、智能合约交互加载合约 ABI
 
     调用合约的读方法（contract.methods.methodName().call()）。
 
@@ -50,7 +50,7 @@
 
     监听合约事件（contract.events.EventName）。
 
-### 6 安全与 UX 防止重放攻击（绑定网络 ID 校验）。
+### 6、安全与 UX 防止重放攻击（绑定网络 ID 校验）
 
     防止用户误操作大额转账（设置 gas 预估、余额检测）。
 
