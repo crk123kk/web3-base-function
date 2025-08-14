@@ -39,9 +39,10 @@
 </template>
 
 <script setup>
+import Web3 from "web3";
 import { setupEthereumListeners } from "@/utils";
 import { onMounted, ref } from "vue";
-import Web3 from "web3";
+
 /**
     1、钱包连接
 

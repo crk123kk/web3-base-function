@@ -20,10 +20,18 @@
 
         1.3、添加连接钱包、取消钱包授权功能
 
-# 2025.08.15(todo)
+# 2025.08.15
 
     2、账户管理获取当前已连接的钱包地址
 
         2.1、显示地址的简短版本（0xabc...def）。
 
         2.2、获取账户余额（web3.eth.getBalance 并格式化为 ETH）。
+
+# 2025.08.15
+
+    3、网络管理检测当前网络 ID 和网络名称
+
+        支持一键切换网络（wallet_switchEthereumChain）。
+
+        支持添加自定义网络（wallet_addEthereumChain）。

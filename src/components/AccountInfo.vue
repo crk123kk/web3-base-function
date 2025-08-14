@@ -26,8 +26,8 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from "vue";
 import Web3 from "web3";
+import { onMounted, ref } from "vue";
 import { formatAddress, copyToClipboard } from "@/utils/index";
 /**
     2 账户管理获取当前已连接的钱包地址。

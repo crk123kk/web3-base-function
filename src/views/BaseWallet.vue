@@ -9,12 +9,14 @@
     <div>web3.js基础功能</div>
     <LinkAccount></LinkAccount>
     <AccountInfo></AccountInfo>
+    <ManageNet></ManageNet>
   </t-space>
 </template>
 
 <script setup>
 import AccountInfo from "@/components/AccountInfo.vue";
 import LinkAccount from "@/components/LinkAccount.vue";
+import ManageNet from "@/components/ManageNet.vue";
 import { detectWallets } from "@/utils";
 import { onBeforeMount, ref } from "vue";
 
@@ -23,7 +25,7 @@ const selectWallet = ref("");
 
 onBeforeMount(() => {
   const walletList = detectWallets();
-  console.log("walletList :>> ", walletList);
+  // console.log("walletList :>> ", walletList);
   walletOptions.value = walletList.map((wallet) => ({
     content: wallet,
     value: wallet,

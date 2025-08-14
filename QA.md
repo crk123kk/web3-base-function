@@ -202,3 +202,40 @@
     需要传入地址参数，获取到的是对应地址的余额
 
     如果要获取其他类型的代币数量，需要通过调用合约的abi来实现。ETH（以太币）是以太坊网络的原生代币，它是系统内置资产，不是通过智能合约发行的。以太坊的每个地址都有一个 balance 字段，存储它持有的 ETH 数量（单位是 wei）。而像 USDT、DAI、UNI 这种 ERC-20 代币，都是用智能合约管理的，所以必须调用合约方法才能查余额。
+
+## web3.eth.getChainId()
+
+    web3.js中用于获取当前网络ID的函数。
+
+## wallet_switchEthereumChain
+
+    切换网络
+
+        web3.js中并没有切换网络的API,只能通过调用MetaMask钱包的API，用于切换网络。
+
+        await window.ethereum.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: chainIdHex }],
+        });
+
+## wallet_addEthereumChain
+
+    添加网络
+
+        web3.js中并没有添加网络的API,只能通过调用MetaMask钱包的API，用于添加网络。
+
+        await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [addNetworkParams],
+        });
+
+        添加 Sepolia、Goerli、Ethereum Mainnet这种钱包（以太坊）自带的网络，不需要而外参数
+
+        但是添加其他的网络，需要添加参数：
+            param: {
+                chainId: "0x89",
+                chainName: "Polygon Mainnet",
+                rpcUrls: ["https://polygon-rpc.com/"],
+                nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
+                blockExplorerUrls: ["https://polygonscan.com"],
+            },
