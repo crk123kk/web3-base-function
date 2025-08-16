@@ -10,6 +10,8 @@
 
     显示多币种余额（通过调用 Token 合约 balanceOf）。只能通过对应合约来获取余额
 
+    发起 Token 转账（调用 ERC20 合约 transfer）。
+
 # 2025.08.14
 
     1、钱包连接
@@ -35,3 +37,11 @@
         支持一键切换网络（wallet_switchEthereumChain）。
 
         支持添加自定义网络（wallet_addEthereumChain）。
+
+# 2025.08.16
+
+    4、交易功能发起 ETH 转账（web3.eth.sendTransaction ）
+
+        显示交易哈希、交易状态（确认数、成功/失败）。
+
+        处理用户拒绝交易的错误。

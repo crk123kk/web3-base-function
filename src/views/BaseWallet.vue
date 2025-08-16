@@ -1,22 +1,26 @@
 <template>
-  <t-space direction="vertical">
-    <t-select
-      v-model="selectWallet"
-      :options="walletOptions"
-      placeholder="请选择要使用的钱包"
-      clearable
-    ></t-select>
-    <div>web3.js基础功能</div>
-    <LinkAccount></LinkAccount>
-    <AccountInfo></AccountInfo>
-    <ManageNet></ManageNet>
-  </t-space>
+  <div class="base-wallet">
+    <t-space direction="vertical">
+      <t-select
+        v-model="selectWallet"
+        :options="walletOptions"
+        placeholder="请选择要使用的钱包"
+        clearable
+      ></t-select>
+      <div>web3.js基础功能</div>
+      <LinkAccount></LinkAccount>
+      <AccountInfo></AccountInfo>
+      <ManageNet></ManageNet>
+      <SendTransaction></SendTransaction>
+    </t-space>
+  </div>
 </template>
 
 <script setup>
 import AccountInfo from "@/components/AccountInfo.vue";
 import LinkAccount from "@/components/LinkAccount.vue";
 import ManageNet from "@/components/ManageNet.vue";
+import SendTransaction from "@/components/SendTransaction.vue";
 import { detectWallets } from "@/utils";
 import { onBeforeMount, ref } from "vue";
 
@@ -32,4 +36,8 @@ onBeforeMount(() => {
   }));
 });
 </script>
-<style lang="less" scoped></style>
+<style lang="less" scoped>
+.base-wallet {
+  margin-bottom: 500px;
+}
+</style>

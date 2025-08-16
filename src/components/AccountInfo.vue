@@ -2,7 +2,7 @@
   <div>
     <t-list>
       <t-list-item>
-        当前账号地址：{{ formatAddress(currentAddress, 8, 8) }}
+        当前账号地址：{{ formatInfo(currentAddress, 8, 8) }}
         <template #action>
           <t-link
             theme="primary"
@@ -28,7 +28,7 @@
 <script setup>
 import Web3 from "web3";
 import { onMounted, ref } from "vue";
-import { formatAddress, copyToClipboard } from "@/utils/index";
+import { formatInfo, copyToClipboard } from "@/utils/index";
 /**
     2 账户管理获取当前已连接的钱包地址。
 

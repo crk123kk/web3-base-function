@@ -52,6 +52,9 @@ export const setupEthereumListeners = () => {
   });
 };
 
+/**
+ * 获取当前浏览器安装的钱包名称
+ */
 export const detectWallets = () => {
   const wallets = [];
 
@@ -83,20 +86,21 @@ export const detectWallets = () => {
 
 /**
  * 用于加密字符串显示
- * @param {*} address
+ * @param {*} info
  * @param {*} startLength
  * @param {*} endLength
  * @returns
  */
-export const formatAddress = (address, startLength = 5, endLength = 3) => {
-  if (!address) return "";
+export const formatInfo = (info, startLength = 5, endLength = 3) => {
+  if (!info) return "";
 
-  if (!address.startsWith("0x") || address.length !== 42) {
-    return address;
-  }
+  // // 判断是否是地址信息
+  // if (!info.startsWith("0x") || info.length !== 42) {
+  //   return info;
+  // }
 
-  const start = address.substring(0, startLength);
-  const end = address.substring(address.length - endLength);
+  const start = info.substring(0, startLength);
+  const end = info.substring(info.length - endLength);
 
   return `${start}...${end}`;
 };

@@ -1,0 +1,241 @@
+<template>
+  <div>
+    <t-list>
+      <t-list-item>转账：</t-list-item>
+      <t-list-item>
+        可转账最大余额：
+        <template #action> {{ maxTransNum }} </template>
+      </t-list-item>
+      <t-list-item>
+        转入地址：
+        <template #action>
+          <t-input v-model="toAddress" placeholder="请输入转入地址" />
+        </template>
+      </t-list-item>
+      <t-list-item>
+        转账金额：
+        <template #action>
+          <t-input v-model="transNum" placeholder="请输入转账金额" />
+        </template>
+      </t-list-item>
+
+      <t-list-item>
+        发起签名交易：
+        <template #action>
+          <t-link
+            theme="primary"
+            style="margin-left: 32px"
+            @click="sendTransactionBySign"
+          >
+            确认交易
+          </t-link>
+        </template>
+      </t-list-item>
+      <t-list-item v-if="transactionHash">
+        交易查询：{{ formatInfo(transactionHash, 8, 8) }}
+        <template #action>
+          <t-link
+            theme="primary"
+            style="margin-left: 32px"
+            @click.native="searchTransaction(transactionHash)"
+          >
+            前往查询
+          </t-link>
+        </template>
+      </t-list-item>
+    </t-list>
+    <!-- <t-dialog
+      :visible="confirmSignVisible"
+      @confirm="sendTransactionBySign"
+      @cancel="confirmSignVisible = false"
+      @close="confirmSignVisible = false"
+    >
+      <p>This is a dialog</p>
+    </t-dialog> -->
+  </div>
+</template>
+
+<script setup>
+/*
+    4、交易功能发起 ETH 转账（web3.eth.sendTransaction ）
+
+        显示交易哈希、交易状态（确认数、成功/失败）。
+
+        处理用户拒绝交易的错误。
+*/
+
+import Web3 from "web3";
+import { onMounted, ref } from "vue";
+import { MessagePlugin } from "tdesign-vue-next";
+import { formatInfo } from "@/utils/index";
+
+const web3 = new Web3(
+  Web3.givenProvider ||
+    "wss://sepolia.infura.io/ws/v3/a12179495f334c078af782cd44dc7df2"
+);
+
+// 当前账户
+const senderAddr = ref("");
+// 最大可转账余额
+const maxTransNum = ref(0);
+// 转账目标地址
+const toAddress = ref("");
+// 转账金额
+const transNum = ref("");
+// 交易签名（发起查询的依据）
+const transactionHash = ref("");
+
+// 确认提示框
+// const confirmSignVisible = ref(false);
+
+onMounted(() => {
+  getCurrentAccountInfo();
+});
+
+/*
+  获取当前账户信息
+*/
+const getCurrentAccountInfo = async () => {
+  // 获取当前账户
+  const accounts = await web3.eth.getAccounts();
+  senderAddr.value = accounts[0]; // 发送者地址
+
+  // 获取当前账户可转账余额
+  maxTransNum.value = await getMaxTransNum(senderAddr.value);
+};
+
+/**
+ *
+ * @param fromAddress 当前账号地址：转账账号
+ * @param gasLimit
+ *      gasLimit 不是固定的
+ *      普通 ETH 转账 21000 是对的 （普通转账（ETH），并且计算最大可用余额——最大可转账数目）
+ *      如果是 合约调用 / ERC20 转账，gasLimit 会更高（几万~几十万）。（这时候就需要动态计算——因为 gasPrice 会变化的）
+ */
+const getMaxTransNum = async (fromAddress, gasLimit = 21000) => {
+  // 1. 查询余额（单位：wei）
+  const balanceWei = BigInt(await web3.eth.getBalance(fromAddress));
+
+  // 2. 查询当前 gasPrice（单位：wei）
+  const gasPriceWei = BigInt(await web3.eth.getGasPrice());
+
+  // 3. 计算 gas 费用 = gasLimit * gasPrice
+  const estimatedFeeWei = gasPriceWei * BigInt(gasLimit);
+
+  // 4. 可转金额 = 余额 - gas费（必须大于0）
+  if (balanceWei <= estimatedFeeWei) {
+    return "0"; // 余额不足
+  }
+
+  const transferableWei = balanceWei - estimatedFeeWei;
+
+  // 5. 转换为 ETH
+  return web3.utils.fromWei(transferableWei.toString(), "ether");
+};
+
+/**
+ * 发送签名交易(不需要dialog了，因为会钱包会弹出提示)
+ */
+const sendTransactionBySign = async () => {
+  try {
+    if (!senderAddr.value) {
+      MessagePlugin.error("请登录");
+      return;
+    }
+    if (!toAddress.value) {
+      MessagePlugin.error("请输入转账地址");
+      return;
+    }
+    if (!transNum.value) {
+      MessagePlugin.error("请输入转账金额");
+      return;
+    }
+    // 获取当前账户
+    const fromAddr = senderAddr.value;
+    // 转账目标地址
+    const toAddr = toAddress.value;
+    // 转账金额（ETH 转 Wei）
+    const amount = transNum.value;
+    const amountInWei = web3.utils.toWei(amount, "ether");
+
+    // 构建交易参数(最基本参数)
+    const txParams = {
+      from: fromAddr,
+      to: toAddr,
+      value: amountInWei,
+    };
+
+    // 发送交易（由 MetaMask 弹窗签名确认）
+    const tranRes = await web3.eth.sendTransaction(txParams);
+    MessagePlugin.success("交易成功");
+    transactionHash.value = tranRes.transactionHash;
+    // 刷新数据(刷新数据就会导致交易查询的tx不见，需要一个全局状态更新库)
+    // window.location.reload();
+  } catch (error) {
+    MessagePlugin.error("发送交易失败");
+    // 1. 用户拒绝
+    if (error.code === 4001 || error.message?.includes("User denied")) {
+      console.error("❌ 交易已取消：用户拒绝签名");
+      return null;
+    }
+
+    // 2. 余额不足
+    if (error.message?.includes("insufficient funds")) {
+      console.error("❌ 交易失败：余额不足");
+      return null;
+    }
+
+    // 3. Gas 相关错误
+    if (
+      error.message?.includes("intrinsic gas too low") ||
+      error.message?.includes("out of gas")
+    ) {
+      console.error("❌ 交易失败：Gas 设置不足");
+      return null;
+    }
+
+    // 4. 其他未知错误
+    console.error("❌ 交易失败:", error);
+    return null;
+  }
+};
+
+/**
+ * 发起交易查询
+ */
+const searchTransaction = (txHash) => {
+  try {
+    // 方式 1: 跳转查询：调到 sepolia 测试网的查询网站进行查询
+    // etherscan 的 tx 地址拼接
+    // const url = `https://sepolia.etherscan.io/tx/${txHash}`;
+    // window.open(url, "_blank");
+
+    // 方式 2：获取交易信息 log 打印
+    getTxReceipt(txHash);
+  } catch (error) {
+    console.error("查询交易失败", error);
+  }
+};
+
+/**
+ * 自查询交易信息
+ */
+const getTxReceipt = async (txHash) => {
+  try {
+    const receipt = await web3.eth.getTransactionReceipt(txHash);
+    if (receipt) {
+      console.log("交易回执:", receipt);
+      if (receipt.status) {
+        console.log("✅ 交易成功");
+      } else {
+        console.log("❌ 交易失败");
+      }
+    } else {
+      console.log("⏳ 交易还在打包中...");
+    }
+  } catch (error) {
+    console.error("查询交易失败:", error);
+  }
+};
+</script>
+<style lang="less" scoped></style>
