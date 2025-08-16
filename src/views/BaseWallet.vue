@@ -12,6 +12,7 @@
       <AccountInfo></AccountInfo>
       <ManageNet></ManageNet>
       <SendTransaction></SendTransaction>
+      <TransactionHistory></TransactionHistory>
     </t-space>
   </div>
 </template>
@@ -21,6 +22,7 @@ import AccountInfo from "@/components/AccountInfo.vue";
 import LinkAccount from "@/components/LinkAccount.vue";
 import ManageNet from "@/components/ManageNet.vue";
 import SendTransaction from "@/components/SendTransaction.vue";
+import TransactionHistory from "@/components/TransactionHistory.vue";
 import { detectWallets } from "@/utils";
 import { onBeforeMount, ref } from "vue";
 

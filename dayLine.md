@@ -42,12 +42,18 @@
 
 # 2025.08.16
 
-    4、交易功能发起 ETH 转账（web3.eth.sendTransaction ）
+    4、交易功能发起 ETH 转账
 
         显示交易哈希、交易状态（确认数、成功/失败）。
 
         处理用户拒绝交易的错误。
 
-        签名交易
+        签名交易：（web3.eth.sendTransaction ）
 
-        私钥交易
+        私钥交易：离线签名交易（web3.eth.accounts.signTransaction）。
+
+# 2025.08.16
+
+    获取交易列表
+
+

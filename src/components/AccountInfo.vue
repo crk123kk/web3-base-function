@@ -13,14 +13,7 @@
           </t-link>
         </template>
       </t-list-item>
-      <t-list-item>
-        账户余额：{{ currentBalanceEth }} ETH
-        <!-- <template #action>
-          <t-link theme="primary" hover="color" style="margin-left: 32px">
-            操作3
-          </t-link>
-        </template> -->
-      </t-list-item>
+      <t-list-item> 账户余额：{{ currentBalanceEth }} ETH </t-list-item>
     </t-list>
   </div>
 </template>
@@ -42,13 +35,13 @@ const web3 = new Web3(
   Web3.givenProvider ||
     "wss://sepolia.infura.io/ws/v3/a12179495f334c078af782cd44dc7df2"
 );
+const currentAddress = ref("");
+const currentBalanceEth = ref("");
 
 onMounted(() => {
   getAccountInfo();
 });
 
-const currentAddress = ref("");
-const currentBalanceEth = ref("");
 /**
  * 获取账户信息
  */
@@ -65,7 +58,7 @@ const getAccountInfo = async () => {
     // 转换成 ETH
     currentBalanceEth.value = web3.utils.fromWei(balanceWei, "ether");
   } catch (error) {
-    console.error("获取余额失败", error);
+    console.error("获取账户信息失败", error);
   }
 };
 </script>

@@ -779,3 +779,12 @@ const getTxReceipt = async (txHash) => {
   }
 };
 ```
+
+## 交易列表
+
+    通过 Etherscan API 进行查询：需要去官网注册获取对应的api key 才可以
+
+```js
+const url = `${selectedNetwork.value.prefix}?module=account&action=txlist&address=${fromAddr.value}&startblock=0&endblock=99999999&page=${page.value}&offset=${pageSize}&sort=desc&apikey=${apiKey}`;
+const res = await axios.get(url);
+```

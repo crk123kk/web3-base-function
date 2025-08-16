@@ -34,13 +34,19 @@
 
     支持添加自定义网络（wallet_addEthereumChain）。
 
-### 4、交易功能发起 ETH 转账（web3.eth.sendTransaction）
+### 4、交易功能发起 ETH 转账
 
     发起 Token 转账（调用 ERC20 合约 transfer）。
+
+            签名交易：（web3.eth.sendTransaction ）
+
+            私钥交易：离线签名交易（web3.eth.accounts.signTransaction）。
 
     显示交易哈希、交易状态（确认数、成功/失败）。
 
     处理用户拒绝交易的错误。
+
+    历史交易记录查询（Etherscan API）。
 
 ### 5、智能合约交互加载合约 ABI
 
@@ -50,21 +56,15 @@
 
     监听合约事件（contract.events.EventName）。
 
+    NFT 展示（ERC721 / ERC1155）。
+
+    Token 列表管理（读取 CoinGecko 或链上 Token Registry）。
+
 ### 6、安全与 UX 防止重放攻击（绑定网络 ID 校验）
 
     防止用户误操作大额转账（设置 gas 预估、余额检测）。
 
     提示未连接钱包、网络错误等状态。
-
-## 4. 附加功能（进阶）
-
-    离线签名交易（web3.eth.accounts.signTransaction）。
-
-    NFT 展示（ERC721 / ERC1155）。
-
-    Token 列表管理（读取 CoinGecko 或链上 Token Registry）。
-
-    历史交易记录查询（Etherscan API）。
 
 ## 技术要求
 
