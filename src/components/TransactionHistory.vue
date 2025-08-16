@@ -7,7 +7,7 @@
       <div class="page-form">
         <t-form :label-width="100">
           <t-form-item label="查询所需私钥：" name="name">
-            <t-input v-model="apiKey"></t-input>
+            <t-input v-model="apiKey" type="password"></t-input>
           </t-form-item>
           <t-form-item label="选择交易网络" name="password">
             <!-- 网络选择 -->
