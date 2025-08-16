@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div v-loading="pageLoading">
     <t-list>
       <t-list-item>转账：</t-list-item>
       <t-list-item>
@@ -31,6 +31,18 @@
           </t-link>
         </template>
       </t-list-item>
+      <t-list-item>
+        发起私钥交易（需要私钥构建交易，注意私钥隐私）：
+        <template #action>
+          <t-link
+            theme="primary"
+            style="margin-left: 32px"
+            @click="confirmInputKey"
+          >
+            确认交易
+          </t-link>
+        </template>
+      </t-list-item>
       <t-list-item v-if="transactionHash">
         交易查询：{{ formatInfo(transactionHash, 8, 8) }}
         <template #action>
@@ -44,18 +56,7 @@
         </template>
       </t-list-item>
     </t-list>
-    <t-list-item>
-      发起私钥交易（需要私钥构建交易，注意私钥隐私）：
-      <template #action>
-        <t-link
-          theme="primary"
-          style="margin-left: 32px"
-          @click="confirmVisible = true"
-        >
-          确认交易
-        </t-link>
-      </template>
-    </t-list-item>
+
     <t-dialog
       :visible="confirmVisible"
       @confirm="sendTransactionByPrivateKey"
@@ -83,9 +84,12 @@
 */
 
 import Web3 from "web3";
+import Tx from "ethereumjs-tx";
 import { onMounted, ref } from "vue";
 import { MessagePlugin } from "tdesign-vue-next";
 import { formatInfo } from "@/utils/index";
+
+const pageLoading = ref(false);
 
 const web3 = new Web3(
   Web3.givenProvider ||
@@ -259,11 +263,103 @@ const getTxReceipt = async (txHash) => {
   }
 };
 
+const confirmInputKey = async () => {
+  if (!senderAddr.value) {
+    MessagePlugin.error("请登录");
+    return;
+  }
+  if (!toAddress.value) {
+    MessagePlugin.error("请输入转账地址");
+    return;
+  }
+  if (!transNum.value) {
+    MessagePlugin.error("请输入转账金额");
+    return;
+  }
+  confirmVisible.value = true;
+};
 /**
  * 私钥交易：需要私钥
  *   通过私钥创建交易对象，私钥的获取可以是自己输入，也可以是当时创建钱包的时候保存在服务器等，但是，不管哪种，私钥的隐秘性是很重要的！！！
  *   只有通过私钥自行生成签名，才可以不需要通过浏览器钱包插件进行签名确认
  */
-const sendTransactionByPrivateKey = () => {};
+const sendTransactionByPrivateKey = async () => {
+  // 私钥（注意：测试用，实际不要明文存放！）
+  const priKey = Buffer.from(privateKey.value, "hex");
+
+  if (!priKey) {
+    MessagePlugin.error("请输入转账私钥");
+    return;
+  }
+  // 获取当前账户
+  const fromAddr = senderAddr.value;
+  // 转账目标地址
+  const toAddr = toAddress.value;
+  // 转账金额（ETH 转 Wei）
+  const amount = transNum.value;
+  const amountInWei = web3.utils.toWei(amount, "ether");
+
+  // getTransactionCount：用于获取 nonce，它是每个以太坊账户发出的交易计数器
+  // 每发起一笔交易，nonce 就会 +1，可以用来确认交易是哪笔
+  const nonce = await web3.eth.getTransactionCount(fromAddr);
+
+  // 获取当前 gasPrice
+  const gasPrice = await web3.eth.getGasPrice();
+  // 设置 ETH 转账最低 21000
+  // ethereumjs-tx 里不认 gasLimit，它要的 key 是 gas
+  const gasLimit = 21000;
+
+  // 获取当前的 chainId
+  // chainId 是 以太坊网络的唯一标识符，用于区分不同的链。它是交易签名的一部分，用来防止同一笔交易在其他链上被重复使用（重放攻击）。
+  const chainId = await web3.eth.getChainId();
+
+  // gasPrice, nonce, value, gas 都要用 十六进制字符串（BN 转 hex），而不是 JS 的 number
+
+  // 构建交易参数(最基本参数)
+  const txParams = {
+    from: fromAddr,
+    to: toAddr,
+    value: web3.utils.toHex(amountInWei),
+    nonce: web3.utils.toHex(nonce),
+    // gas: web3.utils.toHex(gasLimit),
+    gasPrice: web3.utils.toHex(gasPrice),
+    chainId,
+  };
+
+  // 需要将交易的数据进行预估 gas，然后将gas 设置到 rawTx 中
+  // 除了ETH之间交易是固定值21000外，很多情况下这个值会根据交易内容而变化，所以我们通常需要去计算它
+  // 并且为了获得更好的成功率，可能还会对它进行1.1倍这样的加成
+  let gas = await web3.eth.estimateGas(txParams);
+  txParams.gas = web3.utils.toHex(gas);
+
+  // 创建交易对象：ethereumjs-tx 实现私钥加密
+  const tx = new Tx(txParams);
+
+  // 签名交易
+  tx.sign(priKey);
+
+  // 序列化交易：生成 serializedTx,有这个值才可以实现转账
+  const serializedTx = tx.serialize();
+
+  confirmVisible.value = false;
+  pageLoading.value = true;
+
+  // 发送交易
+  web3.eth
+    .sendSignedTransaction("0x" + serializedTx.toString("hex"))
+    .on("transactionHash", (txId) => {
+      // 可以通过这个交易Id 去 sepolia 上查交易记录
+      console.log("交易Id:", txId);
+    })
+    .on("receipt", (tranRes) => {
+      console.log("tranRes :>> ", tranRes);
+      pageLoading.value = false;
+      transactionHash.value = tranRes.transactionHash;
+    })
+    .on("error", (err) => {
+      pageLoading.value = false;
+      console.error("交易失败：", err);
+    });
+};
 </script>
 <style lang="less" scoped></style>
