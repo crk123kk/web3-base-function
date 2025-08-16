@@ -239,3 +239,543 @@
                 nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
                 blockExplorerUrls: ["https://polygonscan.com"],
             },
+
+## 交易
+
+### 完整的交易步骤
+
+#### 钱包签名交易： web3.eth.sendTransaction(txParams);
+
+```js
+/**
+ * 发送签名交易
+ */
+const sendTransactionBySign = async () => {
+  try {
+    if (!senderAddr.value) {
+      MessagePlugin.error("请登录");
+      return;
+    }
+    if (!toAddress.value) {
+      MessagePlugin.error("请输入转账地址");
+      return;
+    }
+    if (!transNum.value) {
+      MessagePlugin.error("请输入转账金额");
+      return;
+    }
+    // 获取当前账户
+    const fromAddr = senderAddr.value;
+    // 转账目标地址
+    const toAddr = toAddress.value;
+    // 转账金额（ETH 转 Wei）
+    const amount = transNum.value;
+    const amountInWei = web3.utils.toWei(amount, "ether");
+
+    // 构建交易参数(最基本参数)
+    const txParams = {
+      from: fromAddr,
+      to: toAddr,
+      value: amountInWei,
+    };
+
+    // 发送交易（由 MetaMask 弹窗签名确认）
+    // QA：sendTransaction
+    const tranRes = await web3.eth.sendTransaction(txParams);
+    MessagePlugin.success("交易成功");
+    transactionHash.value = tranRes.transactionHash;
+  } catch (error) {
+    MessagePlugin.error("发送交易失败");
+    // 1. 用户拒绝
+    if (error.code === 4001 || error.message?.includes("User denied")) {
+      console.error("❌ 交易已取消：用户拒绝签名");
+      return null;
+    }
+
+    // 2. 余额不足
+    if (error.message?.includes("insufficient funds")) {
+      console.error("❌ 交易失败：余额不足");
+      return null;
+    }
+
+    // 3. Gas 相关错误
+    if (
+      error.message?.includes("intrinsic gas too low") ||
+      error.message?.includes("out of gas")
+    ) {
+      console.error("❌ 交易失败：Gas 设置不足");
+      return null;
+    }
+
+    // 4. 其他未知错误
+    console.error("❌ 交易失败:", error);
+    return null;
+  }
+};
+```
+
+#### 私钥签名交易： web3.eth.sendSignedTransaction("0x" + serializedTx.toString("hex"))
+
+```js
+/**
+ * 私钥交易：需要私钥
+ */
+const sendTransactionByPrivateKey = async () => {
+  // 私钥
+  const priKey = Buffer.from(privateKey.value, "hex");
+
+  if (!priKey) {
+    MessagePlugin.error("请输入转账私钥");
+    return;
+  }
+  // 获取当前账户
+  const fromAddr = senderAddr.value;
+  // 转账目标地址
+  const toAddr = toAddress.value;
+  // 转账金额（ETH 转 Wei）
+  const amount = transNum.value;
+  const amountInWei = web3.utils.toWei(amount, "ether");
+
+  // 交易次数（交易Id）
+  const nonce = await web3.eth.getTransactionCount(fromAddr);
+
+  // 获取当前 gasPrice
+  const gasPrice = await web3.eth.getGasPrice();
+
+  // 获取当前的 chainId
+  const chainId = await web3.eth.getChainId();
+
+  // 构建交易参数(最基本参数)
+  const txParams = {
+    from: fromAddr,
+    to: toAddr,
+    value: web3.utils.toHex(amountInWei),
+    nonce: web3.utils.toHex(nonce),
+    gasPrice: web3.utils.toHex(gasPrice),
+    chainId,
+  };
+
+  let gas = await web3.eth.estimateGas(txParams);
+  txParams.gas = web3.utils.toHex(gas);
+
+  // 创建交易对象
+  const tx = new Tx(txParams);
+  // 签名交易
+  tx.sign(priKey);
+
+  // 序列化交易：生成 serializedTx,有这个值才可以实现转账
+  const serializedTx = tx.serialize();
+
+  confirmVisible.value = false;
+  pageLoading.value = true;
+
+  // 发送交易
+  web3.eth
+    .sendSignedTransaction("0x" + serializedTx.toString("hex"))
+    .on("transactionHash", (txId) => {
+      // 可以通过这个交易Id 去 sepolia 上查交易记录
+      console.log("交易Id:", txId);
+    })
+    .on("receipt", (tranRes) => {
+      console.log("tranRes :>> ", tranRes);
+      pageLoading.value = false;
+      transactionHash.value = tranRes.transactionHash;
+    })
+    .on("error", (err) => {
+      pageLoading.value = false;
+      console.error("交易失败：", err);
+    });
+};
+```
+
+#### 获取当前账户可转账余额
+
+    这里需要注意：
+
+        gasLimit 不是固定的
+
+            普通 ETH 转账 21000 是对的 （普通转账（ETH），并且计算最大可用余额——最大可转账数目）
+
+            如果是 合约调用 / ERC20 转账，gasLimit 会更高（几万~几十万）。（这时候就需要动态计算——因为 gasPrice 会变化的）
+
+                // 这个计算出来的就是当前交易需要的 gas 费用，然后传入下面的方法进行计算
+                let gas = await web3.eth.estimateGas(txParams);
+
+```js
+/**
+ * QA：获取当前账户可转账余额
+ * @param fromAddress 当前账号地址：转账账号
+ * @param gasLimit
+ */
+const getMaxTransNum = async (fromAddress, gasLimit = 21000) => {
+  // 1. 查询余额（单位：wei）
+  const balanceWei = BigInt(await web3.eth.getBalance(fromAddress));
+
+  // 2. 查询当前 gasPrice（单位：wei）
+  const gasPriceWei = BigInt(await web3.eth.getGasPrice());
+
+  // 3. 计算 gas 费用 = gasLimit * gasPrice
+  const estimatedFeeWei = gasPriceWei * BigInt(gasLimit);
+
+  // 4. 可转金额 = 余额 - gas费（必须大于0）
+  if (balanceWei <= estimatedFeeWei) {
+    return "0"; // 余额不足
+  }
+
+  const transferableWei = balanceWei - estimatedFeeWei;
+
+  // 5. 转换为 ETH
+  return web3.utils.fromWei(transferableWei.toString(), "ether");
+};
+```
+
+### 关于交易的其他信息
+
+#### rawTx （交易参数）
+
+      const txParams = {
+        from: fromAddr,
+        to: toAddr,
+        value: web3.utils.toHex(amountInWei),
+        nonce: web3.utils.toHex(nonce),
+        // gas/gasLimit: web3.utils.toHex(gasLimit),
+        // gasLimit: web3.utils.toHex(gasLimit),
+        gasPrice: web3.utils.toHex(gasPrice),
+        chainId,
+    };
+
+    from：发起交易的账户地址。
+
+    to：接收交易的账户地址。
+
+    value：交易金额，以 wei 为单位。
+
+    nonce：交易编号，用于防止交易重放攻击。
+
+        const nonce = await web3.eth.getTransactionCount(fromAddr);
+        getTransactionCount：用于获取 nonce，它是每个以太坊账户发出的交易计数器
+        每发起一笔交易，nonce 就会 +1，可以用来确认交易是哪笔
+
+        用来确保：
+
+            交易顺序（即先发的交易先执行）
+
+            防止重放攻击（同一个交易不能在不同网络重复使用）
+
+    gas/gasLimit：交易消耗的gas
+
+        gasLimit：签名交易中
+
+        gas：私钥交易中，用的是gas而不是gasLimit（虽然都是一个东西）
+
+            ethereumjs-tx 里不认 gasLimit，它要的 key 是 gas，所以这里是gas而不是gasLimit
+
+            gas可以直接设置固定值，但是很多情况下这个值会根据交易内容而变化，所以我们通常需要去计算当前交易的gas值，并且为了获得更好的成功率，可能还会对它进行1.1倍这样的加成
+
+            ETH之间的交易是固定值（最少）21000（也可以多设置，从而提高成功率）
+
+            计算gas值需要提供交易参数，因为不同的交易需要的 gas 是不同的
+
+                const txParams = {
+                        from: fromAddr,
+                        to: toAddr,
+                        value: web3.utils.toHex(amountInWei),
+                        nonce: web3.utils.toHex(nonce),
+                        gasPrice: web3.utils.toHex(gasPrice),
+                        chainId,
+                };
+                let gas = await web3.eth.estimateGas(txParams);
+                // 获取到gas值然后再赋给txParams
+                txParams.gas = web3.utils.toHex(gas);
+
+    gasPrice：交易消耗的gas价格
+
+    chainId：交易所属的链ID，用于防止交易重放攻击
+
+        chainId 是 以太坊网络的唯一标识符，用于区分不同的链。它是交易签名的一部分，用来防止同一笔交易在其他链上被重复使用（重放攻击）
+
+    web3.utils.toHex(nonce)
+
+        gasPrice, nonce, value, gas 都要用 十六进制字符串（BN 转 hex），而不是 JS 的 number
+
+        这个很重要，如果没有转换会导致交易失败，并且提示什么余额不足等奇怪问题，但是你又没发现余额不足，这时候可能就是没有转换的问题
+
+#### sendTransaction
+
+    发送交易到以太坊网络，但交易需要由 web3 连接的钱包来签名（比如 MetaMask）。
+
+    也就是web3.js 不需要你提供私钥
+
+    钱包会弹出签名窗口
+
+    本质：不需要私钥提供签名，而是钱包发起签名交易，只需要提供转入转出的地址和金额，其他参数都会由钱包设置
+
+    注意点：
+
+        不需要 dialog，因为钱包会有一个确认交易的过程（会和你确认from\to\value）
+
+        最基本的交易参数：（其他参数钱包会自动设置，当然也可以人为设置）
+            const txParams = {
+                from: fromAddr,
+                to: toAddr,
+                value: amountInWei,
+            };
+
+        弹窗：
+            有时候弹窗并不会自动弹出，原因可能由很多，比如多个钱包，比如网络设置是否是native点击都有可能影响，这个不重要，重要的是钱包是否收到签名请求，后者说右上角钱包插件是否有消息，如果有，点开钱包就可以看到请求交易
+
+    使用
+
+```js
+const txParams = {
+  from: fromAddr,
+  to: toAddr,
+  value: amountInWei,
+};
+const tranRes = await web3.eth.sendTransaction(txParams);
+```
+
+#### sendSignedTransaction
+
+    发送已经签名好的交易。
+
+    需要提供交易的签名数据（raw transaction），通常是自己用私钥签名。（注意：私钥实际不要明文存放！）
+
+    本质：需要私钥提供签名，从而发起签名交易，并且其他参数需要设置好，不然很容易交易失败
+
+    注意点：
+
+        1、可以提供确认是否要交易的弹窗（from\to\value等）不提供交易是直接发生的，用户无感知
+
+        2、私钥交易需要额外的配置：
+
+            import Tx from "ethereumjs-tx";
+
+            通过Tx创建交易对象：  const tx = new Tx(txParams);
+
+        3、要使用 ethereumjs-tx，需要 polyfill
+
+            如果没有配置，会报错：BREAKING CHANGE: webpack < 5 used to include polyfills for node.js core modules by default.
+
+            原因是 Webpack 5+ 默认不再为 Node.js 核心模块自动提供 polyfill 导致的。
+
+    使用
+
+```js
+// 构建交易参数(最基本参数)
+const txParams = {
+  from: fromAddr,
+  to: toAddr,
+  value: web3.utils.toHex(amountInWei),
+  nonce: web3.utils.toHex(nonce),
+  gasPrice: web3.utils.toHex(gasPrice),
+  chainId,
+};
+
+let gas = await web3.eth.estimateGas(txParams);
+txParams.gas = web3.utils.toHex(gas);
+
+// 创建交易对象
+const tx = new Tx(txParams);
+// 签名交易
+tx.sign(priKey);
+
+// 序列化交易：生成 serializedTx,有这个值才可以实现转账
+const serializedTx = tx.serialize();
+
+await web3.eth.sendSignedTransaction("0x" + serializedTx.toString("hex"));
+```
+
+#### sendSignedTransaction 需要额外的 polyfill
+
+    1、需要 ethereumjs-tx 来创建交易对象
+
+        引入对应的库：
+
+            "ethereumjs-tx": "^1.3.7",
+            "ethereumjs-util": "^7.1.5",
+            "ethereumjs-wallet": "^1.0.2",
+
+    2、使用 ethereumjs-tx 就需要垫片 polyfill
+
+        在前端使用 Web3 或 ethereumjs-tx 类库时需要依赖 Node.js 模块（比如 stream、crypto、buffer 等）。
+
+            npm install --save-dev stream-browserify buffer process
+
+        实际我引入了：
+
+            "node-polyfill-webpack-plugin": "^4.1.0",
+            "crypto-browserify": "^3.12.1",
+            "buffer": "^6.0.3",
+            "process": "^0.11.10",
+            "stream-browserify": "^3.0.0"
+
+    3、配置 webpack
+
+```js
+        const NodePolyfillPlugin = require("node-polyfill-webpack-plugin");
+        const webpack = require("webpack");
+
+        module.exports = defineConfig({
+            configureWebpack: {
+                resolve: {
+                    fallback: {
+                        stream: require.resolve("stream-browserify"),
+                        crypto: require.resolve("crypto-browserify"),
+                        buffer: require.resolve("buffer/"),
+                        process: require.resolve("process/browser"),
+                    },
+                },
+                plugins: [=
+                    new NodePolyfillPlugin(),
+                    new webpack.ProvidePlugin({
+                        process: "process/browser",
+                        Buffer: ["buffer", "Buffer"],
+                    }),
+                ],
+            },
+        });
+```
+
+#### 交易的监听处理（常见的监听事件）
+
+```js
+// 发送交易
+web3.eth
+  .sendSignedTransaction("0x" + serializedTx.toString("hex"))
+  .on("transactionHash", (txId) => {
+    // 可以通过 txId 去查询交易
+  })
+  .on("receipt", (tranRes) => {
+    // 获取交易结果,这个对象中包含了交易的所有信息，transactionHash就是交易的哈希值，可以通过这个值去查询交易信息
+  })
+  .on("confirmation", (confNumber, receipt) => {
+    // confNumber: 确认数(有多少个区块链节点已经确认了该交易)
+  })
+  .on("error", (err) => {
+    // error: 错误信息
+  });
+```
+
+    transactionHash
+
+        说明：当交易被广播到网络（还没确认）时触发
+        参数：交易哈希（string）
+        用途：前端 UI 可以先提示“交易已提交”，并显示 Etherscan 链接
+
+    receipt
+
+        说明：交易被矿工打包进区块时触发（至少 1 个确认）
+        参数：交易回执（receipt）对象
+        用途：确认交易成功执行了，前端 UI 可以提示“交易成功”
+
+    confirmation
+
+        说明：当交易被更多区块确认时触发
+        参数：(confirmationNumber, receipt)
+        用途：可以根据确认次数更新 UI，比如等到 12 个确认后才提示“安全完成”
+
+    error
+
+        说明：交易失败时触发
+        参数：错误对象（Error）
+        用途：可以在 UI 上显示“交易失败”
+
+    // 没有所谓的 finally
+
+    const tranRes = await web3.eth.sendTransaction(txParams);
+    const tranRes = web3.eth.sendSignedTransaction("0x" + serializedTx.toString("hex"))
+
+    都包含了以上的监听函数
+
+        transRes.on('transactionHash', function(hash){})
+
+#### 交易错误提示
+
+    在以太坊里，能知道交易失败，但不能直接得到失败原因（错误字符串），因为链上执行失败时，节点只会返回一个 status = 0，并不会把错误信息（比如 "SafeMath: subtraction overflow"）保存到链上。
+
+    想要错误原因，必须用 eth_call 回放 或者 调试工具，或者可以根据错误点返回信息进行简单判断
+
+    发送交易失败 Error: MetaMask Tx Signature: User denied transaction signature. { "location": "confirmation", "cause": null
+
+    这个报错其实并不是「链上失败」，而是 用户在 MetaMask 里点了拒绝 ✅。
+
+        交易还没发到区块链 → 因为用户在 MetaMask 弹出的签名窗口里点了 "拒绝" 或 "Cancel"。
+        所以没有 txHash、也不会在 Etherscan 里看到任何记录。
+        "location": "confirmation" 表示是在等待用户确认阶段失败的。
+
+    在 MetaMask 抛出的错误对象 里，并不是所有情况都会带上 error.code
+
+    常见几种：
+
+        用户拒绝签名
+        MetaMask 官方定义的错误码是 4001（EIP-1193 标准）。
+        有些旧版本或某些库封装后，错误对象里可能只有 message，没有 code。
+
+        RPC 节点报错（比如余额不足、gas 估算失败等）
+        这种一般有 code（-32000 之类），但也可能只有 message。
+
+```js
+catch (error) {
+    // 1. 用户拒绝
+    if (error.code === 4001 || error.message?.includes("User denied")) {
+      console.error("❌ 交易已取消：用户拒绝签名");
+      return null;
+    }
+
+    // 2. 余额不足
+    if (error.message?.includes("insufficient funds")) {
+      console.error("❌ 交易失败：余额不足");
+      return null;
+    }
+
+    // 3. Gas 相关错误
+    if (
+      error.message?.includes("intrinsic gas too low") ||
+      error.message?.includes("out of gas")
+    ) {
+      console.error("❌ 交易失败：Gas 设置不足");
+      return null;
+    }
+
+    // 4. 其他未知错误
+    console.error("❌ 交易失败:", error);
+    return null;
+  }
+```
+
+#### 交易结果查询：web3.eth.getTransactionReceipt(txHash)
+
+```js
+const searchTransaction = (txHash) => {
+  try {
+    // 方式 1: 跳转查询：调到 sepolia 测试网的查询网站进行查询
+    // etherscan 的 tx 地址拼接
+    // const url = `https://sepolia.etherscan.io/tx/${txHash}`;
+    // window.open(url, "_blank");
+
+    // 方式 2：获取交易信息 log 打印
+    getTxReceipt(txHash);
+  } catch (error) {
+    console.error("查询交易失败", error);
+  }
+};
+
+const getTxReceipt = async (txHash) => {
+  try {
+    const receipt = await web3.eth.getTransactionReceipt(txHash);
+    if (receipt) {
+      console.log("交易回执:", receipt);
+      if (receipt.status) {
+        console.log("✅ 交易成功");
+      } else {
+        console.log("❌ 交易失败");
+      }
+    } else {
+      console.log("⏳ 交易还在打包中...");
+    }
+  } catch (error) {
+    console.error("查询交易失败:", error);
+  }
+};
+```

@@ -81,6 +81,8 @@
         显示交易哈希、交易状态（确认数、成功/失败）。
 
         处理用户拒绝交易的错误。
+
+        QA：完整的交易步骤
 */
 
 import Web3 from "web3";
@@ -130,12 +132,9 @@ const getCurrentAccountInfo = async () => {
 };
 
 /**
- *
+ * QA：获取当前账户可转账余额
  * @param fromAddress 当前账号地址：转账账号
- * @param gasLimit
- *      gasLimit 不是固定的
- *      普通 ETH 转账 21000 是对的 （普通转账（ETH），并且计算最大可用余额——最大可转账数目）
- *      如果是 合约调用 / ERC20 转账，gasLimit 会更高（几万~几十万）。（这时候就需要动态计算——因为 gasPrice 会变化的）
+ * @param gasLimit 交易手续费
  */
 const getMaxTransNum = async (fromAddress, gasLimit = 21000) => {
   // 1. 查询余额（单位：wei）
@@ -159,7 +158,7 @@ const getMaxTransNum = async (fromAddress, gasLimit = 21000) => {
 };
 
 /**
- * 发送签名交易(不需要dialog了，因为会钱包会弹出提示)
+ * 发送签名交易
  */
 const sendTransactionBySign = async () => {
   try {
@@ -191,11 +190,10 @@ const sendTransactionBySign = async () => {
     };
 
     // 发送交易（由 MetaMask 弹窗签名确认）
+    // QA：sendTransaction
     const tranRes = await web3.eth.sendTransaction(txParams);
     MessagePlugin.success("交易成功");
     transactionHash.value = tranRes.transactionHash;
-    // 刷新数据(刷新数据就会导致交易查询的tx不见，需要一个全局状态更新库)
-    // window.location.reload();
   } catch (error) {
     MessagePlugin.error("发送交易失败");
     // 1. 用户拒绝
@@ -247,6 +245,7 @@ const searchTransaction = (txHash) => {
  */
 const getTxReceipt = async (txHash) => {
   try {
+    // QA: await web3.eth.getTransactionReceipt(txHash)
     const receipt = await web3.eth.getTransactionReceipt(txHash);
     if (receipt) {
       console.log("交易回执:", receipt);
@@ -280,11 +279,9 @@ const confirmInputKey = async () => {
 };
 /**
  * 私钥交易：需要私钥
- *   通过私钥创建交易对象，私钥的获取可以是自己输入，也可以是当时创建钱包的时候保存在服务器等，但是，不管哪种，私钥的隐秘性是很重要的！！！
- *   只有通过私钥自行生成签名，才可以不需要通过浏览器钱包插件进行签名确认
  */
 const sendTransactionByPrivateKey = async () => {
-  // 私钥（注意：测试用，实际不要明文存放！）
+  // 私钥
   const priKey = Buffer.from(privateKey.value, "hex");
 
   if (!priKey) {
@@ -299,21 +296,14 @@ const sendTransactionByPrivateKey = async () => {
   const amount = transNum.value;
   const amountInWei = web3.utils.toWei(amount, "ether");
 
-  // getTransactionCount：用于获取 nonce，它是每个以太坊账户发出的交易计数器
-  // 每发起一笔交易，nonce 就会 +1，可以用来确认交易是哪笔
+  // 交易次数（交易Id）
   const nonce = await web3.eth.getTransactionCount(fromAddr);
 
   // 获取当前 gasPrice
   const gasPrice = await web3.eth.getGasPrice();
-  // 设置 ETH 转账最低 21000
-  // ethereumjs-tx 里不认 gasLimit，它要的 key 是 gas
-  const gasLimit = 21000;
 
   // 获取当前的 chainId
-  // chainId 是 以太坊网络的唯一标识符，用于区分不同的链。它是交易签名的一部分，用来防止同一笔交易在其他链上被重复使用（重放攻击）。
   const chainId = await web3.eth.getChainId();
-
-  // gasPrice, nonce, value, gas 都要用 十六进制字符串（BN 转 hex），而不是 JS 的 number
 
   // 构建交易参数(最基本参数)
   const txParams = {
@@ -321,20 +311,15 @@ const sendTransactionByPrivateKey = async () => {
     to: toAddr,
     value: web3.utils.toHex(amountInWei),
     nonce: web3.utils.toHex(nonce),
-    // gas: web3.utils.toHex(gasLimit),
     gasPrice: web3.utils.toHex(gasPrice),
     chainId,
   };
 
-  // 需要将交易的数据进行预估 gas，然后将gas 设置到 rawTx 中
-  // 除了ETH之间交易是固定值21000外，很多情况下这个值会根据交易内容而变化，所以我们通常需要去计算它
-  // 并且为了获得更好的成功率，可能还会对它进行1.1倍这样的加成
   let gas = await web3.eth.estimateGas(txParams);
   txParams.gas = web3.utils.toHex(gas);
 
-  // 创建交易对象：ethereumjs-tx 实现私钥加密
+  // 创建交易对象
   const tx = new Tx(txParams);
-
   // 签名交易
   tx.sign(priKey);
 
