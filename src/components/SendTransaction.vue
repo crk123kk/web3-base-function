@@ -44,14 +44,32 @@
         </template>
       </t-list-item>
     </t-list>
-    <!-- <t-dialog
-      :visible="confirmSignVisible"
-      @confirm="sendTransactionBySign"
-      @cancel="confirmSignVisible = false"
-      @close="confirmSignVisible = false"
+    <t-list-item>
+      发起私钥交易（需要私钥构建交易，注意私钥隐私）：
+      <template #action>
+        <t-link
+          theme="primary"
+          style="margin-left: 32px"
+          @click="confirmVisible = true"
+        >
+          确认交易
+        </t-link>
+      </template>
+    </t-list-item>
+    <t-dialog
+      :visible="confirmVisible"
+      @confirm="sendTransactionByPrivateKey"
+      @cancel="confirmVisible = false"
+      @close="confirmVisible = false"
     >
-      <p>This is a dialog</p>
-    </t-dialog> -->
+      <template #header>请输入私钥</template>
+      <template #body>
+        <t-input
+          type="password"
+          v-model="privateKey"
+          :prefix-icon="renderPrefixIcon"
+      /></template>
+    </t-dialog>
   </div>
 </template>
 
@@ -86,7 +104,10 @@ const transNum = ref("");
 const transactionHash = ref("");
 
 // 确认提示框
-// const confirmSignVisible = ref(false);
+const confirmVisible = ref(false);
+
+// 私钥
+const privateKey = ref("");
 
 onMounted(() => {
   getCurrentAccountInfo();
@@ -237,5 +258,12 @@ const getTxReceipt = async (txHash) => {
     console.error("查询交易失败:", error);
   }
 };
+
+/**
+ * 私钥交易：需要私钥
+ *   通过私钥创建交易对象，私钥的获取可以是自己输入，也可以是当时创建钱包的时候保存在服务器等，但是，不管哪种，私钥的隐秘性是很重要的！！！
+ *   只有通过私钥自行生成签名，才可以不需要通过浏览器钱包插件进行签名确认
+ */
+const sendTransactionByPrivateKey = () => {};
 </script>
 <style lang="less" scoped></style>
