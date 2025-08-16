@@ -23,6 +23,16 @@
             发起私钥交易
           </t-button>
         </t-form-item>
+        <t-form-item label="交易查询：" name="password" v-if="transactionHash">
+          <span>{{ formatInfo(transactionHash, 8, 8) }}</span>
+          <t-link
+            theme="primary"
+            style="margin-left: 32px"
+            @click.native="searchTransaction(transactionHash)"
+          >
+            前往查询
+          </t-link>
+        </t-form-item>
       </t-form>
     </div>
 
@@ -128,11 +138,14 @@ const sendTransactionBySign = async () => {
       value: amountInWei,
     };
 
+    pageLoading.value = true;
     // 发送交易（由 MetaMask 弹窗签名确认）
     // QA：sendTransaction
     const tranRes = await web3.eth.sendTransaction(txParams);
+    pageLoading.value = false;
     MessagePlugin.success("交易成功");
     transactionHash.value = tranRes.transactionHash;
+    searchTransaction(transactionHash.value);
   } catch (error) {
     MessagePlugin.error("发送交易失败");
     // 1. 用户拒绝
@@ -169,11 +182,11 @@ const searchTransaction = (txHash) => {
   try {
     // 方式 1: 跳转查询：调到 sepolia 测试网的查询网站进行查询
     // etherscan 的 tx 地址拼接
-    // const url = `https://sepolia.etherscan.io/tx/${txHash}`;
-    // window.open(url, "_blank");
+    const url = `https://sepolia.etherscan.io/tx/${txHash}`;
+    window.open(url, "_blank");
 
     // 方式 2：获取交易信息 log 打印
-    getTxReceipt(txHash);
+    // getTxReceipt(txHash);
   } catch (error) {
     console.error("查询交易失败", error);
   }
