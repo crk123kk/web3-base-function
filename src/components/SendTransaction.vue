@@ -123,6 +123,8 @@ const sendTransactionBySign = async () => {
       MessagePlugin.error("请输入转账金额");
       return;
     }
+    // 清空上次交易
+    transactionHash.value = "";
     // 获取当前账户
     const fromAddr = senderAddr.value;
     // 转账目标地址
@@ -147,6 +149,7 @@ const sendTransactionBySign = async () => {
     transactionHash.value = tranRes.transactionHash;
     searchTransaction(transactionHash.value);
   } catch (error) {
+    pageLoading.value = false;
     MessagePlugin.error("发送交易失败");
     // 1. 用户拒绝
     if (error.code === 4001 || error.message?.includes("User denied")) {
@@ -186,7 +189,7 @@ const searchTransaction = (txHash) => {
     window.open(url, "_blank");
 
     // 方式 2：获取交易信息 log 打印
-    // getTxReceipt(txHash);
+    getTxReceipt(txHash);
   } catch (error) {
     console.error("查询交易失败", error);
   }
@@ -233,6 +236,8 @@ const confirmInputKey = async () => {
  * 私钥交易：需要私钥
  */
 const sendTransactionByPrivateKey = async () => {
+  // 清空上次交易
+  transactionHash.value = "";
   // 私钥
   const priKey = Buffer.from(privateKey.value, "hex");
 
@@ -252,7 +257,9 @@ const sendTransactionByPrivateKey = async () => {
   const nonce = await web3.eth.getTransactionCount(fromAddr);
 
   // 获取当前 gasPrice
-  const gasPrice = await web3.eth.getGasPrice();
+  let gasPrice = await web3.eth.getGasPrice();
+  // 提高 1 倍
+  gasPrice = web3.utils.toBN(gasPrice).muln(2);
 
   // 获取当前的 chainId
   const chainId = await web3.eth.getChainId();
