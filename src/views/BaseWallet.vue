@@ -1,45 +1,51 @@
 <template>
   <div class="base-wallet">
-    <t-space direction="vertical">
-      <t-select
-        v-model="selectWallet"
-        :options="walletOptions"
-        placeholder="请选择要使用的钱包"
-        clearable
-      ></t-select>
-      <div>web3.js基础功能</div>
-      <LinkAccount></LinkAccount>
-      <AccountInfo></AccountInfo>
+    <div class="page-header">web3.js基础功能</div>
+    <div class="page-content">
+      <WalletInfo></WalletInfo>
+      <t-divider></t-divider>
       <ManageNet></ManageNet>
+      <t-divider></t-divider>
+      <AccountInfo></AccountInfo>
+      <t-divider></t-divider>
       <SendTransaction></SendTransaction>
+      <t-divider></t-divider>
       <TransactionHistory></TransactionHistory>
-    </t-space>
+    </div>
   </div>
 </template>
 
 <script setup>
 import AccountInfo from "@/components/AccountInfo.vue";
-import LinkAccount from "@/components/LinkAccount.vue";
+import WalletInfo from "@/components/WalletInfo.vue";
 import ManageNet from "@/components/ManageNet.vue";
 import SendTransaction from "@/components/SendTransaction.vue";
 import TransactionHistory from "@/components/TransactionHistory.vue";
-import { detectWallets } from "@/utils";
-import { onBeforeMount, ref } from "vue";
-
-const walletOptions = ref([]);
-const selectWallet = ref("");
-
-onBeforeMount(() => {
-  const walletList = detectWallets();
-  // console.log("walletList :>> ", walletList);
-  walletOptions.value = walletList.map((wallet) => ({
-    content: wallet,
-    value: wallet,
-  }));
-});
 </script>
-<style lang="less" scoped>
+<style lang="less">
 .base-wallet {
-  margin-bottom: 500px;
+  width: 80%;
+  margin: auto;
+  .page-header {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    color: #2c3e50;
+  }
+  .page-content {
+    margin: 20px 0;
+    .page-title {
+      text-align: center;
+      margin-bottom: 16px;
+      span {
+        font-size: 20px;
+        font-weight: bold;
+        color: #2c3e50;
+      }
+    }
+    .page-main {
+      text-align: left;
+    }
+  }
 }
 </style>

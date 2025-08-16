@@ -1,26 +1,38 @@
 <template>
-  <t-list>
-    <t-list-item> 当前 chinaId：{{ currentChinId }} </t-list-item>
-    <t-list-item> 常见的网络 </t-list-item>
-    <t-list-item>
-      <t-select
-        placeholder="请选择要切换的网络"
-        value-type="object"
-        clearable
-        :options="netIdList"
-        @change="handleChange"
-      ></t-select>
-      <template #action>
-        <t-link
-          theme="primary"
-          style="margin-left: 32px"
-          @click="switchNetwork(selectedOption.value, selectedOption.param)"
-        >
-          确认切换
-        </t-link>
-      </template>
-    </t-list-item>
-  </t-list>
+  <div class="page-content">
+    <div class="page-title">
+      <span class=""> 网络信息： </span>
+    </div>
+    <div class="page-main">
+      <t-row :gutter="20">
+        <t-col :span="4">
+          <t-space
+            ><span>当前 chinaId：</span>
+            <span>：{{ currentChinId }} </span></t-space
+          >
+        </t-col>
+        <t-col :span="4">
+          <t-space>
+            <span>请选择要切换的网络</span>
+            <t-select
+              placeholder="请选择要切换的网络"
+              value-type="object"
+              clearable
+              :options="netIdList"
+              @change="handleChange"
+            ></t-select>
+            <t-link
+              theme="primary"
+              style="margin-left: 32px"
+              @click="switchNetwork(selectedOption.value, selectedOption.param)"
+            >
+              确认切换
+            </t-link></t-space
+          >
+        </t-col>
+      </t-row>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -95,4 +107,3 @@ async function switchNetwork(chainIdDecimal, addNetworkParams = null) {
   }
 }
 </script>
-<style lang="less" scoped></style>

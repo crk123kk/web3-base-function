@@ -1,52 +1,55 @@
 <template>
-  <!-- <div>
-    <p>
-      <span>本地是否安装钱包：</span>
-      <span>{{ isInstalled ? "是" : "否" }}</span>
-    </p>
-    <p>
-      <span>是否连接了钱包：</span>
-      <span>{{ isLinked ? "是" : "否" }}</span>
-    </p>
-    <button v-if="!isLinked" @click="linkAccount">连接钱包</button>
-    <button v-if="isLinked" @click="revoke">断开连接</button>
-  </div> -->
-
-  <t-space direction="vertical">
-    <t-list>
-      <t-list-item>
-        本地是否安装钱包：
-        <template #action>
-          <t-switch v-model="isInstalled" size="large" disabled>
-            <template #label="slotProps">{{
-              slotProps.value ? "是" : "否"
-            }}</template>
-          </t-switch>
-        </template>
-      </t-list-item>
-      <t-list-item>
-        是否连接了钱包：
-        <template #action>
-          <t-switch v-model="isLinked" size="large" @change="onChange">
-            <template #label="slotProps">{{
-              slotProps.value ? "连接" : "断开"
-            }}</template>
-          </t-switch>
-        </template>
-      </t-list-item>
-    </t-list>
-  </t-space>
+  <div class="page-content">
+    <div class="page-title">
+      <span class=""> 钱包信息： </span>
+    </div>
+    <div class="page-main">
+      <t-row :gutter="20">
+        <t-col :span="4">
+          <t-space>
+            <span>本地是否安装钱包：</span>
+            <t-switch v-model="isInstalled" size="large" disabled>
+              <template #label="slotProps">{{
+                slotProps.value ? "是" : "否"
+              }}</template>
+            </t-switch>
+          </t-space>
+        </t-col>
+        <t-col :span="4"
+          ><t-space>
+            <span>是否连接了钱包：</span>
+            <t-switch v-model="isLinked" size="large" @change="onChange">
+              <template #label="slotProps">{{
+                slotProps.value ? "连接" : "断开"
+              }}</template>
+            </t-switch>
+          </t-space>
+        </t-col>
+        <t-col :span="4">
+          <t-space>
+            <span>已经安装的钱包列表：</span>
+            <t-select
+              v-model="selectWallet"
+              :options="walletOptions"
+              placeholder="请选择要使用的钱包"
+              clearable
+            ></t-select>
+          </t-space>
+        </t-col>
+      </t-row>
+    </div>
+  </div>
 </template>
 
 <script setup>
 import Web3 from "web3";
 import { setupEthereumListeners } from "@/utils";
 import { onMounted, ref } from "vue";
-
+import { detectWallets } from "@/utils";
 /**
     1、钱包连接
 
-        支持 MetaMask、Brave Wallet、Coinbase Wallet 等常见钱包。
+        支持 MetaMask、Brave Wallet、Coinbase Wallet 等常见钱包。钱包列表
 
         支持检测钱包是否安装 (typeof window.ethereum !== "undefined" 或 Web3.givenProvider)。
 
@@ -55,6 +58,8 @@ import { onMounted, ref } from "vue";
         自动监听账号和网络切换事件（accountsChanged、chainChanged）。
  */
 
+const walletOptions = ref([]);
+const selectWallet = ref("");
 const isInstalled = ref(false);
 const isLinked = ref(false);
 // 实例化web3
@@ -65,6 +70,7 @@ const web3 = new Web3(
 );
 
 onMounted(() => {
+  getWalletList();
   // QA: window.ethereum.on()
   setupEthereumListeners();
   getIsInstall();
@@ -73,6 +79,17 @@ onMounted(() => {
 
 const resetInfo = () => {
   getIsLinked();
+};
+
+/**
+ * 获取当前浏览器安装的钱包列表
+ */
+const getWalletList = () => {
+  const walletList = detectWallets();
+  walletOptions.value = walletList.map((wallet) => ({
+    content: wallet,
+    value: wallet,
+  }));
 };
 
 /**
@@ -132,4 +149,17 @@ const revoke = async () => {
   resetInfo();
 };
 </script>
-<style lang="less" scoped></style>
+<style lang="less" scoped>
+.page-content {
+  margin: 20px 0;
+  .page-title {
+    text-align: center;
+    margin-bottom: 16px;
+    span {
+      font-size: 20px;
+      font-weight: bold;
+      color: #2c3e50;
+    }
+  }
+}
+</style>

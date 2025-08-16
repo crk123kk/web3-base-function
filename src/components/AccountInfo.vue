@@ -1,20 +1,37 @@
 <template>
-  <div>
-    <t-list>
-      <t-list-item>
-        当前账号地址：{{ formatInfo(currentAddress, 8, 8) }}
-        <template #action>
-          <t-link
-            theme="primary"
-            style="margin-left: 32px"
-            @click="copyToClipboard(currentAddress)"
-          >
-            copy
-          </t-link>
-        </template>
-      </t-list-item>
-      <t-list-item> 账户余额：{{ currentBalanceEth }} ETH </t-list-item>
-    </t-list>
+  <div class="page-content">
+    <div class="page-title">
+      <span class=""> 钱包信息 </span>
+    </div>
+    <div class="page-main">
+      <t-row :gutter="20">
+        <t-col :span="4">
+          <t-space>
+            <span>当前账号地址：</span>
+            <span>{{ formatInfo(currentAddress, 8, 8) }}</span>
+            <t-link
+              theme="primary"
+              style="margin-left: 32px"
+              @click="copyToClipboard(currentAddress)"
+            >
+              copy
+            </t-link>
+          </t-space>
+        </t-col>
+        <t-col :span="4">
+          <t-space>
+            <span>账户余额：</span>
+            <span>{{ currentBalanceEth }} ETH</span>
+          </t-space>
+        </t-col>
+        <t-col span="4">
+          <t-space style="text-align: center">
+            <span>可转账最大余额：</span>
+            <span>{{ maxTransNum }} </span>
+          </t-space>
+        </t-col>
+      </t-row>
+    </div>
   </div>
 </template>
 
@@ -37,6 +54,8 @@ const web3 = new Web3(
 );
 const currentAddress = ref("");
 const currentBalanceEth = ref("");
+// 最大可转账余额
+const maxTransNum = ref(0);
 
 onMounted(() => {
   getAccountInfo();
@@ -57,9 +76,37 @@ const getAccountInfo = async () => {
     const balanceWei = await web3.eth.getBalance(currentAddress.value);
     // 转换成 ETH
     currentBalanceEth.value = web3.utils.fromWei(balanceWei, "ether");
+
+    // 获取当前账户可转账余额
+    await getMaxTransNum(currentAddress.value);
   } catch (error) {
     console.error("获取账户信息失败", error);
   }
 };
+
+/**
+ * QA：获取当前账户可转账余额
+ * @param fromAddress 当前账号地址：转账账号
+ * @param gasLimit 交易手续费
+ */
+const getMaxTransNum = async (fromAddress, gasLimit = 21000) => {
+  // 1. 查询余额（单位：wei）
+  const balanceWei = BigInt(await web3.eth.getBalance(fromAddress));
+
+  // 2. 查询当前 gasPrice（单位：wei）
+  const gasPriceWei = BigInt(await web3.eth.getGasPrice());
+
+  // 3. 计算 gas 费用 = gasLimit * gasPrice
+  const estimatedFeeWei = gasPriceWei * BigInt(gasLimit);
+
+  // 4. 可转金额 = 余额 - gas费（必须大于0）
+  if (balanceWei <= estimatedFeeWei) {
+    maxTransNum.value = "0"; // 余额不足
+  }
+
+  const transferableWei = balanceWei - estimatedFeeWei;
+
+  // 5. 转换为 ETH
+  maxTransNum.value = web3.utils.fromWei(transferableWei.toString(), "ether");
+};
 </script>
-<style lang="less" scoped></style>

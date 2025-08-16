@@ -1,61 +1,30 @@
 <template>
-  <div v-loading="pageLoading">
-    <t-list>
-      <t-list-item>转账：</t-list-item>
-      <t-list-item>
-        可转账最大余额：
-        <template #action> {{ maxTransNum }} </template>
-      </t-list-item>
-      <t-list-item>
-        转入地址：
-        <template #action>
+  <div v-loading="pageLoading" class="page-content">
+    <div class="page-title">
+      <span class=""> 转账 </span>
+    </div>
+    <div class="page-main">
+      <t-form :label-width="100">
+        <t-form-item label="转入地址：" name="name">
           <t-input v-model="toAddress" placeholder="请输入转入地址" />
-        </template>
-      </t-list-item>
-      <t-list-item>
-        转账金额：
-        <template #action>
+        </t-form-item>
+        <t-form-item label="转账金额：" name="password">
           <t-input v-model="transNum" placeholder="请输入转账金额" />
-        </template>
-      </t-list-item>
-
-      <t-list-item>
-        发起签名交易：
-        <template #action>
-          <t-link
-            theme="primary"
-            style="margin-left: 32px"
-            @click="sendTransactionBySign"
-          >
-            确认交易
-          </t-link>
-        </template>
-      </t-list-item>
-      <t-list-item>
-        发起私钥交易（需要私钥构建交易，注意私钥隐私）：
-        <template #action>
-          <t-link
-            theme="primary"
+        </t-form-item>
+        <t-form-item>
+          <t-button theme="primary" @click="sendTransactionBySign">
+            发起签名交易
+          </t-button>
+          <t-button
+            theme="danger"
             style="margin-left: 32px"
             @click="confirmInputKey"
           >
-            确认交易
-          </t-link>
-        </template>
-      </t-list-item>
-      <t-list-item v-if="transactionHash">
-        交易查询：{{ formatInfo(transactionHash, 8, 8) }}
-        <template #action>
-          <t-link
-            theme="primary"
-            style="margin-left: 32px"
-            @click.native="searchTransaction(transactionHash)"
-          >
-            前往查询
-          </t-link>
-        </template>
-      </t-list-item>
-    </t-list>
+            发起私钥交易
+          </t-button>
+        </t-form-item>
+      </t-form>
+    </div>
 
     <t-dialog
       :visible="confirmVisible"
@@ -100,8 +69,7 @@ const web3 = new Web3(
 
 // 当前账户
 const senderAddr = ref("");
-// 最大可转账余额
-const maxTransNum = ref(0);
+
 // 转账目标地址
 const toAddress = ref("");
 // 转账金额
@@ -126,35 +94,6 @@ const getCurrentAccountInfo = async () => {
   // 获取当前账户
   const accounts = await web3.eth.getAccounts();
   senderAddr.value = accounts[0]; // 发送者地址
-
-  // 获取当前账户可转账余额
-  maxTransNum.value = await getMaxTransNum(senderAddr.value);
-};
-
-/**
- * QA：获取当前账户可转账余额
- * @param fromAddress 当前账号地址：转账账号
- * @param gasLimit 交易手续费
- */
-const getMaxTransNum = async (fromAddress, gasLimit = 21000) => {
-  // 1. 查询余额（单位：wei）
-  const balanceWei = BigInt(await web3.eth.getBalance(fromAddress));
-
-  // 2. 查询当前 gasPrice（单位：wei）
-  const gasPriceWei = BigInt(await web3.eth.getGasPrice());
-
-  // 3. 计算 gas 费用 = gasLimit * gasPrice
-  const estimatedFeeWei = gasPriceWei * BigInt(gasLimit);
-
-  // 4. 可转金额 = 余额 - gas费（必须大于0）
-  if (balanceWei <= estimatedFeeWei) {
-    return "0"; // 余额不足
-  }
-
-  const transferableWei = balanceWei - estimatedFeeWei;
-
-  // 5. 转换为 ETH
-  return web3.utils.fromWei(transferableWei.toString(), "ether");
 };
 
 /**
@@ -347,4 +286,9 @@ const sendTransactionByPrivateKey = async () => {
     });
 };
 </script>
-<style lang="less" scoped></style>
+<style lang="less" scoped>
+.page-main {
+  width: 50%;
+  margin: auto;
+}
+</style>

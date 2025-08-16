@@ -1,75 +1,84 @@
 <template>
-  <div>
-    <t-space direction="vertical" style="width: 100%">
-      <t-form :label-width="60">
-        <t-form-item label="查询私钥">
-          <!-- 私钥 -->
-          <t-input v-model="apiKey"></t-input>
-        </t-form-item>
-        <t-form-item label="选择网络">
-          <!-- 网络选择 -->
-          <t-select
-            v-model="selectedNetwork.value"
-            :options="networks"
-            label="name"
-            value="value"
-            @change="changeNetwork"
-            placeholder="选择网络"
-            style="width: 200px"
-          />
-        </t-form-item>
-        <t-form-item>
-          <t-button @click="handleSearch">查询</t-button>
-        </t-form-item>
-      </t-form>
+  <div class="page-content">
+    <div class="page-title">
+      <span class=""> 交易历史 </span>
+    </div>
+    <div class="page-main">
+      <div class="page-form">
+        <t-form :label-width="100">
+          <t-form-item label="查询所需私钥：" name="name">
+            <t-input v-model="apiKey"></t-input>
+          </t-form-item>
+          <t-form-item label="选择交易网络" name="password">
+            <!-- 网络选择 -->
+            <t-select
+              v-model="selectedNetwork.value"
+              :options="networks"
+              label="name"
+              value="value"
+              @change="changeNetwork"
+              placeholder="选择网络"
+            />
+          </t-form-item>
+          <t-form-item>
+            <t-button @click="handleSearch">查询</t-button>
+          </t-form-item>
+        </t-form>
+      </div>
+      <t-row class="page-table">
+        <!-- 交易表格 -->
+        <t-table
+          :columns="columns"
+          :data="transactions"
+          :loading="loading"
+          bordered
+        >
+          <template #hash="{ row }">
+            <t-link
+              :href="etherscanLink(row.hash)"
+              target="_blank"
+              style="color: blue"
+            >
+              {{ formatInfo(row.hash, 8, 8) }}
+            </t-link>
+          </template>
 
-      <!-- 交易表格 -->
-      <t-table
-        :columns="columns"
-        :data="transactions"
-        :loading="loading"
-        bordered
-      >
-        <template #hash="{ row }">
-          <t-link
-            :href="etherscanLink(row.hash)"
-            target="_blank"
-            style="color: blue"
-          >
-            {{ formatInfo(row.hash, 8, 8) }}
-          </t-link>
-        </template>
+          <template #timeStamp="{ row }">
+            {{ formatTime(row.timeStamp) }}
+          </template>
 
-        <template #timeStamp="{ row }">
-          {{ formatTime(row.timeStamp) }}
-        </template>
+          <template #from="{ row }">
+            {{ formatInfo(row.from, 8, 8) }}
+          </template>
 
-        <template #from="{ row }">
-          {{ formatInfo(row.from, 8, 8) }}
-        </template>
+          <template #to="{ row }">
+            {{ formatInfo(row.to, 8, 8) }}
+          </template>
 
-        <template #to="{ row }">
-          {{ formatInfo(row.to, 8, 8) }}
-        </template>
+          <template #value="{ row }">
+            {{ formatEth(row.value) }}
+          </template>
 
-        <template #value="{ row }">
-          {{ formatEth(row.value) }}
-        </template>
+          <template #isError="{ row }">
+            {{ row.isError === "0" ? "✅ 成功" : "❌ 失败" }}
+          </template>
+        </t-table>
 
-        <template #isError="{ row }">
-          {{ row.isError === "0" ? "✅ 成功" : "❌ 失败" }}
-        </template>
-      </t-table>
-
-      <!-- 分页 -->
-      <t-space>
-        <t-button :disabled="page === 1" @click="prevPage">上一页</t-button>
-        <span>第 {{ page }} 页</span>
-        <t-button :disabled="transactions.length < pageSize" @click="nextPage">
-          下一页
-        </t-button>
-      </t-space>
-    </t-space>
+        <!-- 分页 -->
+        <div class="table-footer">
+          <t-space>
+            <t-button :disabled="page === 1" @click="prevPage">上一页</t-button>
+            <span>第 {{ page }} 页</span>
+            <t-button
+              :disabled="transactions.length < pageSize"
+              @click="nextPage"
+            >
+              下一页
+            </t-button>
+          </t-space>
+        </div>
+      </t-row>
+    </div>
   </div>
 </template>
 
@@ -210,8 +219,19 @@ const handleSearch = async () => {
 };
 </script>
 
-<style scoped>
-span {
-  margin: 0 8px;
+<style lang="less" scoped>
+.page-form {
+  width: 50%;
+  margin: auto;
+}
+.page-table {
+  margin-top: 32px;
+
+  .table-footer {
+    display: inline-block;
+    width: 100%;
+    margin-top: 32px;
+    text-align: center;
+  }
 }
 </style>
